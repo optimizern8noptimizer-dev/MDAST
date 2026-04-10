@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASP — Mobile Application Security Platform</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg:        #080c14;
+    --bg2:       #0d1220;
+    --bg3:       #111827;
+    --border:    #1e2d45;
+    --accent:    #2563eb;
+    --accent2:   #3b82f6;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --critical:  #ef4444;
+    --high:      #f97316;
+    --medium:    #eab308;
+    --low:       #22c55e;
+    --info:      #3b82f6;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+  }
+
+  .logo {
+    padding: 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 700; font-size: 14px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .logo-text { line-height: 1.2; }
+  .logo-title { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+  .logo-sub   { font-size: 9px;  color: var(--muted); letter-spacing: .1em; font-family: var(--mono); }
+
+  nav { padding: 12px 8px; flex: 1; }
+
+  .nav-section { font-size: 9px; color: var(--muted); letter-spacing: .15em; padding: 12px 8px 4px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 12.5px; color: var(--muted);
+    transition: all .15s; border: none; background: none;
+    width: 100%; text-align: left;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover  { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(37,99,235,.15); color: var(--accent2); }
+  .nav-item .icon  { font-size: 14px; width: 18px; text-align: center; }
+
+  .user-panel {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .user-name { font-weight: 600; color: var(--text); font-size: 12px; }
+  .user-role {
+    display: inline-block; margin-top: 4px;
+    padding: 1px 8px; border-radius: 99px;
+    font-size: 9px; font-family: var(--mono);
+    letter-spacing: .08em;
+    background: rgba(37,99,235,.2); color: var(--accent2);
+  }
+
+  .btn-logout {
+    margin-top: 8px; width: 100%;
+    padding: 6px; border-radius: 6px;
+    border: 1px solid var(--border); background: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 11px; font-family: var(--sans);
+    transition: all .15s;
+  }
+  .btn-logout:hover { border-color: var(--critical); color: var(--critical); }
+
+  /* ── Main ── */
+  .main {
+    margin-left: 220px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+  }
+
+  .page-title   { font-size: 16px; font-weight: 600; }
+  .page-sub     { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .badge-queue  { font-size: 10px; font-family: var(--mono); padding: 3px 10px; border-radius: 99px; background: rgba(37,99,235,.2); color: var(--accent2); }
+
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-title { font-size: 12px; color: var(--muted); letter-spacing: .1em; margin-bottom: 8px; font-family: var(--mono); }
+
+  /* ── Stats grid ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: .1em; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+  .stat-sub   { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Severity badges ── */
+  .sev {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; font-family: var(--mono);
+  }
+  .sev-critical { background: rgba(239,68,68,.15);  color: var(--critical); }
+  .sev-high     { background: rgba(249,115,22,.15); color: var(--high); }
+  .sev-medium   { background: rgba(234,179,8,.15);  color: var(--medium); }
+  .sev-low      { background: rgba(34,197,94,.15);  color: var(--low); }
+  .sev-info     { background: rgba(59,130,246,.15); color: var(--info); }
+
+  /* ── Table ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th { text-align: left; padding: 8px 12px; font-size: 10px; color: var(--muted); letter-spacing: .1em; border-bottom: 1px solid var(--border); font-weight: 600; }
+  .tbl td { padding: 10px 12px; border-bottom: 1px solid rgba(30,45,69,.5); }
+  .tbl tr:hover td { background: rgba(255,255,255,.02); }
+  .tbl-empty { text-align: center; padding: 40px; color: var(--muted); font-size: 12px; }
+
+  /* ── Status chips ── */
+  .status { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 4px; }
+  .status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .status-pending   { color: var(--muted);    background: rgba(100,116,139,.1); }
+  .status-running   { color: var(--accent2);  background: rgba(59,130,246,.1); animation: pulse 2s infinite; }
+  .status-completed { color: var(--low);      background: rgba(34,197,94,.1); }
+  .status-failed    { color: var(--critical); background: rgba(239,68,68,.1); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  /* ── Forms ── */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; letter-spacing: .08em; }
+
+  input, select, textarea {
+    width: 100%; padding: 9px 12px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text);
+    font-size: 13px; font-family: var(--sans);
+    outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  .btn {
+    padding: 9px 18px; border-radius: 6px;
+    border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; font-family: var(--sans);
+    transition: all .15s; letter-spacing: .04em;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-outline:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-danger  { background: rgba(239,68,68,.15); color: var(--critical); border: 1px solid rgba(239,68,68,.3); }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 10px;
+    padding: 40px; text-align: center; cursor: pointer;
+    transition: all .2s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(37,99,235,.05); }
+  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-text { font-size: 13px; color: var(--muted); }
+  .upload-sub  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Login screen ── */
+  .login-screen {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+
+  .login-box {
+    width: 380px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+  }
+
+  .login-logo { text-align: center; margin-bottom: 28px; }
+  .login-logo .icon { font-size: 36px; margin-bottom: 8px; }
+  .login-logo .title { font-size: 20px; font-weight: 700; color: var(--accent2); }
+  .login-logo .sub   { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Alert ── */
+  .alert { padding: 10px 14px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; }
+  .alert-error   { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
+  .alert-success { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.3);  color: #86efac; }
+
+  /* ── Progress bar ── */
+  .progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width .3s; }
+
+  /* ── Finding card ── */
+  .finding-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; margin-bottom: 8px;
+  }
+  .finding-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .finding-meta  { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .finding-meta span { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+  .finding-desc  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .finding-code  { margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 4px; font-family: var(--mono); font-size: 10px; color: #94a3b8; overflow-x: auto; white-space: pre; }
+  .finding-rec   { margin-top: 8px; font-size: 11px; color: #86efac; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .row { display: flex; gap: 16px; }
+  .col { flex: 1; }
+  .flex { display: flex; align-items: center; }
+  .gap8 { gap: 8px; }
+  .ml-auto { margin-left: auto; }
+  .mt12 { margin-top: 12px; }
+  .text-muted { color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const API = '/api';
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+const state = {
+  token:    localStorage.getItem('masp_token') || null,
+  user:     JSON.parse(localStorage.getItem('masp_user') || 'null'),
+  page:     'dashboard',
+  scans:    [],
+  findings: [],
+  reports:  [],
+  audit:    [],
+  stats:    null,
+  loading:  false,
+  error:    null,
+  success:  null,
+};
+
+// ─── API HELPER ────────────────────────────────────────────────────────────
+async function api(method, path, body=null, isForm=false) {
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${state.token}` },
+  };
+  if (body && !isForm) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  } else if (body && isForm) {
+    opts.body = body;
+  }
+  try {
+    const res = await fetch(API + path, opts);
+    if (res.status === 204) return {};
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch(e) {
+    throw e;
+  }
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  if (!state.token) { app.innerHTML = loginPage(); bindLogin(); return; }
+  app.innerHTML = layout(pageContent());
+  bindNav();
+  bindPage();
+}
+
+// ─── LOGIN ─────────────────────────────────────────────────────────────────
+function loginPage() {
+  return `
+  <div class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="icon">🛡</div>
+        <div class="title">MASP</div>
+        <div class="sub">Mobile Application Security Platform</div>
+      </div>
+      ${state.error ? `<div class="alert alert-error">${state.error}</div>` : ''}
+      <div class="form-group">
+        <label>USERNAME</label>
+        <input id="l-user" type="text" placeholder="Enter username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>PASSWORD</label>
+        <input id="l-pass" type="password" placeholder="Enter password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="btn-login" style="width:100%;margin-top:4px">
+        Sign In
+      </button>
+      <div class="text-muted" style="text-align:center;margin-top:16px">
+        MASP v2.0 — Hardened Local Edition
+      </div>
+    </div>
+  </div>`;
+}
+
+function bindLogin() {
+  const go = async () => {
+    const u = document.getElementById('l-user').value.trim();
+    const p = document.getElementById('l-pass').value;
+    if (!u || !p) { state.error = 'Enter username and password'; render(); return; }
+    document.getElementById('btn-login').disabled = true;
+    document.getElementById('btn-login').textContent = 'Signing in...';
+    try {
+      const data = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username: u, password: p}),
+      }).then(r => r.json());
+      if (!data.token) throw new Error(data.error || 'Login failed');
+      state.token = data.token;
+      state.user  = data.user;
+      state.error = null;
+      localStorage.setItem('masp_token', data.token);
+      localStorage.setItem('masp_user', JSON.stringify(data.user));
+      state.page = 'dashboard';
+      render();
+      loadStats();
+    } catch(e) {
+      state.error = e.message;
+      render();
+      bindLogin();
+    }
+  };
+  document.getElementById('btn-login').onclick = go;
+  document.getElementById('l-pass').onkeydown = e => e.key === 'Enter' && go();
+}
+
+// ─── LAYOUT ────────────────────────────────────────────────────────────────
+function layout(content) {
+  const role = state.user?.role || '';
+  const navItems = [
+    { id: 'dashboard', icon: '◈', label: 'Dashboard',    roles: ['admin','specialist','auditor'] },
+    { id: 'scans',     icon: '⬡', label: 'Scans',        roles: ['admin','specialist'] },
+    { id: 'upload',    icon: '↑', label: 'Upload & Scan', roles: ['admin','specialist'] },
+    { id: 'findings',  icon: '⚑', label: 'Findings',     roles: ['admin','specialist','auditor'] },
+    { id: 'reports',   icon: '▤', label: 'Reports',      roles: ['admin','specialist','auditor'] },
+    { id: 'audit',     icon: '◉', label: 'Audit Log',    roles: ['admin','auditor'] },
+    { id: 'users',     icon: '◎', label: 'Users',        roles: ['admin'] },
+  ].filter(n => n.roles.includes(role));
+
+  return `
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <div class="logo-text">
+        <div class="logo-title">MASP</div>
+        <div class="logo-sub">SECURITY PLATFORM</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-section">NAVIGATION</div>
+      ${navItems.map(n => `
+        <button class="nav-item${state.page === n.id ? ' active' : ''}" data-page="${n.id}">
+          <span class="icon">${n.icon}</span>${n.label}
+        </button>
+      `).join('')}
+    </nav>
+    <div class="user-panel">
+      <div class="user-name">${state.user?.username || ''}</div>
+      <div class="user-role">${role.toUpperCase()}</div>
+      <button class="btn-logout" id="btn-logout">Sign out</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">${pageTitle()}</div>
+        <div class="page-sub">${pageSubtitle()}</div>
+      </div>
+      ${state.stats ? `<span class="badge-queue">Queue: ${state.stats?.scans?.running || 0} running</span>` : ''}
+    </div>
+    <div class="content">
+      ${state.error   ? `<div class="alert alert-error">${state.error}</div>` : ''}
+      ${state.success ? `<div class="alert alert-success">${state.success}</div>` : ''}
+      ${content}
+    </div>
+  </div>`;
+}
+
+function pageTitle() {
+  return {dashboard:'Dashboard',scans:'Scans',upload:'Upload & Scan',findings:'Findings',reports:'Reports',audit:'Audit Log',users:'User Management'}[state.page] || '';
+}
+function pageSubtitle() {
+  return {dashboard:'Security overview',scans:'All scan jobs',upload:'Upload APK and start analysis',findings:'Security findings',reports:'Generated reports',audit:'System activity log',users:'Manage platform users'}[state.page] || '';
+}
+
+function bindNav() {
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.onclick = () => {
+      state.page = el.dataset.page;
+      state.error = null; state.success = null;
+      render();
+      loadPageData();
+    };
+  });
+  document.getElementById('btn-logout')?.addEventListener('click', logout);
+}
+
+function logout() {
+  api('POST', '/auth/logout').catch(()=>{});
+  state.token = null; state.user = null;
+  localStorage.removeItem('masp_token');
+  localStorage.removeItem('masp_user');
+  render();
+}
+
+// ─── PAGE CONTENT ──────────────────────────────────────────────────────────
+function pageContent() {
+  switch(state.page) {
+    case 'dashboard': return pageDashboard();
+    case 'scans':     return pageScans();
+    case 'upload':    return pageUpload();
+    case 'findings':  return pageFindings();
+    case 'reports':   return pageReports();
+    case 'audit':     return pageAudit();
+    case 'users':     return pageUsers();
+    default: return '<div class="text-muted">Page not found</div>';
+  }
+}
+
+// ─── DASHBOARD ─────────────────────────────────────────────────────────────
+function pageDashboard() {
+  const s = state.stats;
+  if (!s) return '<div class="text-muted" style="text-align:center;padding:60px">Loading...</div>';
+  const sev = s.findings.by_severity || {};
+  return `
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">TOTAL SCANS</div>
+      <div class="stat-value">${s.scans.total}</div>
+      <div class="stat-sub">${s.scans.running} running · ${s.scans.failed} failed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TOTAL FINDINGS</div>
+      <div class="stat-value" style="color:var(--critical)">${s.findings.total}</div>
+      <div class="stat-sub">${sev.critical||0} critical · ${sev.high||0} high</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">REPORTS</div>
+      <div class="stat-value" style="color:var(--accent2)">${s.reports}</div>
+      <div class="stat-sub">PDF &amp; DOCX</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PLATFORM USERS</div>
+      <div class="stat-value" style="color:var(--low)">${s.users}</div>
+      <div class="stat-sub">Active accounts</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="card">
+        <div class="card-title">FINDINGS BY SEVERITY</div>
+        ${['critical','high','medium','low','info'].map(sv => {
+          const cnt = sev[sv] || 0;
+          const max = s.findings.total || 1;
+          const pct = Math.round(cnt / max * 100);
+          return `
+          <div style="margin-bottom:12px">
+            <div class="flex gap8" style="margin-bottom:4px">
+              <span class="sev sev-${sv}">${sv.toUpperCase()}</span>
+              <span style="font-size:12px;font-family:var(--mono);margin-left:auto">${cnt}</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:var(--${sv === 'info' ? 'info' : sv})"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-title">RECENT SCANS</div>
+        ${s.recent_scans.length === 0
+          ? '<div class="text-muted">No scans yet</div>'
+          : s.recent_scans.map(sc => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+            <span class="status status-${sc.status}">${sc.status}</span>
+            <span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sc.apk_name}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${sc.scan_type}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── SCANS PAGE ────────────────────────────────────────────────────────────
+function pageScans() {
+  return `
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--muted)">SCAN HISTORY</span>
+      <button class="btn btn-outline" style="margin-left:auto;padding:6px 12px;font-size:11px" onclick="loadScans()">↻ Refresh</button>
+      <button class="btn btn-primary" style="padding:6px 12px;font-size:11px" onclick="navigateTo('upload')">+ New Scan</button>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th>#</th><th>APK</th><th>TYPE</th><th>STATUS</th>
+        <th>FINDINGS</th><th>DURATION</th><th>ACTIONS</th>
+      </tr></thead>
+      <tbody>
+        ${state.scans.length === 0
+          ? `<tr><td colspan="7" class="tbl-empty">No scans found</td></tr>`
+          : state.scans.map(sc => `
+          <tr>
+            <td style="font-family:var(--mono);color:var(--muted)">#${sc.id}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${sc.apk_name}">${sc.apk_name}</td>
+            <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent2)">${sc.scan_type}</span></td>
+            <td><span class="status status-${sc.status}">${sc.status}</span></td>
+            <td style="font-family:var(--mono)">${sc.findings_count || 0}</td>
+            <td style="font-family:var(--mono);color:var(--muted)">${sc.duration_sec ? sc.duration_sec + 's' : '—'}</td>
+            <td>
+              <div class="flex gap8">
+                ${sc.status === 'completed' ? `
+                  <button class="btn btn-outline" style="padding:4px 8px;font-size:10px" onclick="viewFindings(${sc.id})">Findings</button>
+                  <button class="btn btn-outline" style="padding:4px 8px;font-size:10px" onclick="generateReport(${sc.id})">Report</button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ─── UPLOAD PAGE ───────────────────────────────────────────────────────────
+function pageUpload() {
+  return `
+  <div style="max-width:600px">
+    <div class="card">
+      <div class="card-title">UPLOAD APK</div>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📱</div>
+        <div class="upload-text">Drop APK file here or click to browse</div>
+        <div class="upload-sub">.apk files only · max 200MB · server-side upload registry enabled</div>
+        <input type="file" id="apk-file" accept=".apk" style="display:none">
+      </div>
+      <div id="file-info" style="margin-top:10px;display:none">
+        <div class="flex gap8">
+          <span style="font-size:12px" id="file-name"></span>
+          <span style="font-size:10px;color:var(--muted)" id="file-size"></span>
+        </div>
+        <div class="progress-bar mt12"><div class="progress-fill" id="upload-progress" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">SCAN CONFIGURATION</div>
+      <div class="form-group">
+        <label>SCAN TYPE</label>
+        <select id="scan-type">
+          <option value="sast">SAST — Static Analysis (APK decompilation)</option>
+          <option value="dast">DAST — Dynamic Analysis (Frida + ADB)</option>
+          <option value="both">BOTH — Full Analysis</option>
+        </select>
+      </div>
+      <div class="form-group" id="pkg-group" style="display:none">
+        <label>PACKAGE NAME (required for DAST)</label>
+        <input id="pkg-name" type="text" placeholder="com.example.app">
+      </div>
+      <div class="form-group" id="dev-group" style="display:none">
+        <label>DEVICE ID (optional, leave empty for auto-detect)</label>
+        <input id="dev-id" type="text" placeholder="emulator-5554 or leave empty">
+      </div>
+      <button class="btn btn-primary" id="btn-start-scan" disabled style="width:100%">
+        Upload &amp; Start Scan
+      </button>
+    </div>
+  </div>`;
+}
+
+// ─── FINDINGS PAGE ─────────────────────────────────────────────────────────
+function pageFindings() {
+  if (state.findings.length === 0) {
+    return `<div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:24px;margin-bottom:8px">⚑</div>
+      <div class="text-muted">Select a completed scan to view findings</div>
+      <button class="btn btn-outline" style="margin-top:12px" onclick="navigateTo('scans')">Go to Scans</button>
+    </div>`;
+  }
+  const f = state.findings;
+  const stats = {critical:0,high:0,medium:0,low:0,info:0};
+  f.forEach(x => { if(x.severity in stats) stats[x.severity]++; });
+
+  return `
+  <div class="flex gap8" style="margin-bottom:16px">
+    ${Object.entries(stats).filter(([,v])=>v>0).map(([k,v])=>
+      `<span class="sev sev-${k}">${k.toUpperCase()}: ${v}</span>`
+    ).join('')}
+    <span style="margin-left:auto;font-size:11px;color:var(--muted)">${f.length} total findings</span>
+  </div>
+  ${f.map((f,i) => `
+  <div class="finding-card">
+    <div class="finding-title">
+      <span class="sev sev-${f.severity}" style="margin-right:8px">${f.severity.toUpperCase()}</span>
+      ${f.title}
+    </div>
+    <div class="finding-meta">
+      <span>📌 ${f.cwe_id || '—'}</span>
+      <span>CVSS ${f.cvss_score || 0}</span>
+      <span>${f.owasp_mobile || '—'}</span>
+      <span>${f.masvs_id || '—'}</span>
+      ${f.pci_dss_req ? `<span>PCI DSS ${f.pci_dss_req}</span>` : ''}
+      <span style="color:var(--accent2)">${f.scan_source?.toUpperCase()}</span>
+    </div>
+    <div class="finding-desc">${f.description}</div>
+    ${f.file_path ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:var(--mono)">${f.file_path}${f.line_number ? ':'+f.line_number : ''}</div>` : ''}
+    ${f.code_snippet ? `<div class="finding-code">${escHtml(f.code_snippet.slice(0,300))}</div>` : ''}
+    ${f.frida_output ? `<div class="finding-code">${escHtml(f.frida_output.slice(0,200))}</div>` : ''}
+    <div class="finding-rec">💡 ${f.recommendation}</div>
+  </div>`).join('')}`;
+}
+
+// ─── REPORTS PAGE ──────────────────────────────────────────────────────────
+function pageReports() {
+  return `
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--muted)">GENERATED REPORTS</span>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th>#</th><th>SCAN ID</th><th>FORMAT</th><th>SIZE</th><th>GENERATED</th><th>ACTION</th>
+      </tr></thead>
+      <tbody>
+        ${state.reports.length === 0
+          ? `<tr><td colspan="6" class="tbl-empty">No reports yet — generate one from a completed scan</td></tr>`
+          : state.reports.map(r => `
+          <tr>
+            <td style="font-family:var(--mono);color:var(--muted)">#${r.id}</td>
+            <td style="font-family:var(--mono)">SCAN-${r.scan_id}</td>
+            <td><span style="font-family:var(--mono);font-size:10px;padding:2px 8px;background:rgba(37,99,235,.1);color:var(--accent2);border-radius:4px">${r.format.toUpperCase()}</span></td>
+            <td style="font-family:var(--mono);color:var(--muted)">${Math.round(r.file_size_bytes/1024)} KB</td>
+            <td style="color:var(--muted);font-size:11px">${new Date(r.generated_at).toLocaleString()}</td>
+            <td>
+              <a href="${API}/reports/${r.id}/download" target="_blank" style="text-decoration:none">
+                <button class="btn btn-outline" style="padding:4px 8px;font-size:10px">↓ Download</button>
+              </a>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ─── AUDIT PAGE ────────────────────────────────────────────────────────────
+function pageAudit() {
+  return `
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <span style="font-size:11px;color:var(--muted)">SYSTEM AUDIT LOG</span>
+      <button class="btn btn-outline" style="margin-left:auto;padding:6px 12px;font-size:11px" onclick="loadAudit()">↻ Refresh</button>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>TIME</th><th>USER</th><th>ACTION</th><th>IP</th></tr></thead>
+      <tbody>
+        ${state.audit.length === 0
+          ? `<tr><td colspan="4" class="tbl-empty">No audit entries</td></tr>`
+          : state.audit.map(l => `
+          <tr>
+            <td style="font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap">${new Date(l.timestamp).toLocaleString()}</td>
+            <td style="font-size:11px">${l.user_id ? `#${l.user_id}` : '<span style="color:var(--muted)">system</span>'}</td>
+            <td><code style="font-size:10px;color:var(--accent2)">${l.action}</code></td>
+            <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${l.ip_address || '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ─── USERS PAGE ────────────────────────────────────────────────────────────
+function pageUsers() {
+  return `
+  <div class="row" style="align-items:flex-start">
+    <div class="col">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;color:var(--muted)">PLATFORM USERS</span>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>USERNAME</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="5" class="tbl-empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="width:280px">
+      <div class="card">
+        <div class="card-title">CREATE USER</div>
+        <div class="form-group">
+          <label>USERNAME</label>
+          <input id="nu-user" type="text" placeholder="username">
+        </div>
+        <div class="form-group">
+          <label>EMAIL</label>
+          <input id="nu-email" type="email" placeholder="user@company.com">
+        </div>
+        <div class="form-group">
+          <label>PASSWORD (min 12 chars)</label>
+          <input id="nu-pass" type="password" placeholder="••••••••••••">
+        </div>
+        <div class="form-group">
+          <label>ROLE</label>
+          <select id="nu-role">
+            <option value="specialist">Specialist</option>
+            <option value="auditor">Auditor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="createUser()">Create User</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── DATA LOADING ──────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    state.stats = await api('GET', '/audit/stats');
+    render();
+  } catch(e) { console.error(e); }
+}
+
+async function loadScans() {
+  try {
+    const data = await api('GET', '/scans?limit=50');
+    state.scans = data.scans || [];
+    render();
+  } catch(e) { state.error = e.message; render(); }
+}
+
+async function loadReports() {
+  try {
+    const data = await api('GET', '/reports');
+    state.reports = data.reports || [];
+    render();
+  } catch(e) { console.error(e); }
+}
+
+async function loadAudit() {
+  try {
+    const data = await api('GET', '/audit?limit=100');
+    state.audit = data.logs || [];
+    render();
+  } catch(e) { console.error(e); }
+}
+
+async function loadUsers() {
+  try {
+    const data = await api('GET', '/auth/users');
+    const tbody = document.getElementById('users-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = data.users.map(u => `
+      <tr>
+        <td style="font-family:var(--mono);color:var(--muted)">#${u.id}</td>
+        <td style="font-size:12px">${u.username}</td>
+        <td><span style="font-family:var(--mono);font-size:10px;padding:2px 8px;background:rgba(37,99,235,.1);color:var(--accent2);border-radius:4px">${u.role}</span></td>
+        <td><span class="sev ${u.is_active ? 'sev-low' : 'sev-critical'}">${u.is_active ? 'ACTIVE' : 'INACTIVE'}</span></td>
+        <td>
+          <button class="btn btn-outline" style="padding:3px 8px;font-size:10px" onclick="toggleUser(${u.id},${!u.is_active})">${u.is_active ? 'Deactivate' : 'Activate'}</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+function loadPageData() {
+  loadStats();
+  switch(state.page) {
+    case 'scans':   loadScans(); break;
+    case 'reports': loadReports(); break;
+    case 'audit':   loadAudit(); break;
+    case 'users':   setTimeout(loadUsers, 100); break;
+  }
+}
+
+// ─── ACTIONS ───────────────────────────────────────────────────────────────
+function navigateTo(page) {
+  state.page = page;
+  state.error = null; state.success = null;
+  render();
+  loadPageData();
+}
+
+async function viewFindings(scanId) {
+  try {
+    const data = await api('GET', `/scans/${scanId}/findings`);
+    state.findings = data.findings || [];
+    state.page = 'findings';
+    state.error = null;
+    render();
+  } catch(e) { state.error = e.message; render(); }
+}
+
+async function generateReport(scanId) {
+  const fmt = confirm('Generate PDF? (Cancel = DOCX)') ? 'pdf' : 'docx';
+  try {
+    const data = await api('POST', '/reports', {scan_id: scanId, format: fmt});
+    state.success = `Report generated: ${data.report.file_path.split('/').pop()}`;
+    state.reports = [];
+    render();
+    loadReports();
+  } catch(e) { state.error = e.message; render(); }
+}
+
+async function createUser() {
+  const u = document.getElementById('nu-user').value.trim();
+  const e = document.getElementById('nu-email').value.trim();
+  const p = document.getElementById('nu-pass').value;
+  const r = document.getElementById('nu-role').value;
+  try {
+    await api('POST', '/auth/users', {username:u, email:e, password:p, role:r});
+    state.success = `User '${u}' created`;
+    render();
+    setTimeout(loadUsers, 100);
+  } catch(err) { state.error = err.message; render(); }
+}
+
+async function toggleUser(userId, activate) {
+  try {
+    await api('PUT', `/auth/users/${userId}/activate`, {is_active: activate});
+    loadUsers();
+  } catch(e) { state.error = e.message; render(); }
+}
+
+// ─── UPLOAD BINDING ────────────────────────────────────────────────────────
+function bindPage() {
+  if (state.page === 'upload') bindUpload();
+  if (state.page === 'users')  setTimeout(loadUsers, 100);
+}
+
+function bindUpload() {
+  const zone = document.getElementById('upload-zone');
+  const input = document.getElementById('apk-file');
+  const btn = document.getElementById('btn-start-scan');
+  const typeSelect = document.getElementById('scan-type');
+  let uploadedPath = null;
+  let uploadedId = null;
+
+  if (!zone) return;
+
+  zone.onclick = () => input.click();
+  zone.ondragover = e => { e.preventDefault(); zone.classList.add('drag'); };
+  zone.ondragleave = () => zone.classList.remove('drag');
+  zone.ondrop = e => { e.preventDefault(); zone.classList.remove('drag'); input.files = e.dataTransfer.files; handleFile(); };
+  input.onchange = handleFile;
+
+  typeSelect.onchange = () => {
+    const t = typeSelect.value;
+    document.getElementById('pkg-group').style.display = t !== 'sast' ? '' : 'none';
+    document.getElementById('dev-group').style.display = t !== 'sast' ? '' : 'none';
+  };
+
+  async function handleFile() {
+    const file = input.files[0];
+    if (!file) return;
+    if (!file.name.endsWith('.apk')) { state.error = 'Only .apk files allowed'; render(); return; }
+
+    document.getElementById('file-info').style.display = '';
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = (file.size / 1024 / 1024).toFixed(1) + ' MB';
+    document.getElementById('upload-progress').style.width = '30%';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const data = await api('POST', '/scans/upload', formData, true);
+      uploadedId = data.upload.id;
+      uploadedPath = data.upload.stored_name;
+      document.getElementById('file-name').textContent = `${data.upload.original_name} · upload #${data.upload.id}`;
+      document.getElementById('upload-progress').style.width = '100%';
+      btn.disabled = false;
+      btn.textContent = 'Start Scan';
+      state.error = null;
+    } catch(e) {
+      state.error = e.message;
+      render();
+    }
+  }
+
+  btn.onclick = async () => {
+    if (!uploadedId) return;
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+    try {
+      const body = {
+        upload_id:    uploadedId,
+        scan_type:    typeSelect.value,
+        package_name: document.getElementById('pkg-name')?.value.trim() || '',
+        device_id:    document.getElementById('dev-id')?.value.trim() || '',
+      };
+      const data = await api('POST', '/scans', body);
+      state.success = `Scan #${data.scan_id} queued successfully`;
+      state.page = 'scans';
+      render();
+      loadScans();
+    } catch(e) {
+      state.error = e.message;
+      render();
+    }
+  };
+}
+
+// ─── UTILS ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── AUTO REFRESH ──────────────────────────────────────────────────────────
+setInterval(() => {
+  if (!state.token) return;
+  loadStats();
+  if (state.page === 'scans') loadScans();
+}, 15000);
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+render();
+if (state.token) { loadStats(); loadPageData(); }
+</script>
+</body>
+</html>

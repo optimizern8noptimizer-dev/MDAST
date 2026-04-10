@@ -1,0 +1,38 @@
+MASP v2.0 local hardening and rework
+
+1. Security changes
+- JWT logout now revokes session using token JTI blacklist in DB
+- arbitrary client-supplied apk_path removed from scan start flow
+- local bind changed from 0.0.0.0 to 127.0.0.1
+- generated SECRET_KEY fallback now random instead of static insecure constant
+
+2. Architecture changes
+- configuration centralized in app/config.py with .env support
+- DB engine/session initialization centralized and made lazy
+- added uploaded_apks table for upload registry
+- added revoked_tokens table for session revocation
+- added log rotation in data/logs/masp.log
+- improved health endpoint payload
+
+3. Runtime changes
+- waitress added for better Windows local serving
+- start_windows.bat added for one-click setup
+- init_db.py now creates directories + schema + default admin automatically
+- Frida moved to optional dependency group for more reliable first launch
+
+4. UI changes
+- upload page now works with upload_id registry flow
+- login/version text updated
+- upload zone text updated
+
+5. Compatibility notes
+- target mode: Windows 11 local, Python 3.12.5, SQLite
+- queue is still in-process by design for this release
+- DAST still requires separate external tooling and optional Frida install
+
+
+PATCH v2.1
+- Fixed false positives for SAST-030 (Cleartext Traffic).
+- SAST-030 no longer scans res/layout/*.xml as evidence for network issues.
+- Added context-aware detection for AndroidManifest.xml, res/xml network security config, and explicit non-local http:// endpoints.
+- Improved deduplication for repeated findings with identical evidence.
